@@ -22,7 +22,7 @@ export default function ContactPage() {
             Contact Smart Mobile Hub
           </h1>
           <p className="text-slate-600 max-w-3xl mx-auto text-base leading-relaxed">
-            Need help choosing a phone, want to ask about a sale, or want to apply for installment? Our team is ready to assist you via WhatsApp, phone, or email.
+            Need help choosing a phone, want to ask about a sale, or have any other questions? Our team is ready to assist you via WhatsApp, phone, or email.
           </p>
         </div>
       </section>
@@ -56,7 +56,7 @@ export default function ContactPage() {
             </div>
             <h2 className="text-2xl font-black text-slate-900 mb-3">WhatsApp</h2>
             <p className="text-slate-600 text-sm leading-relaxed mb-6">
-              Fast responses for product questions and installment support.
+              Fast responses for product questions and general support.
             </p>
             <Link
               href={waLink}

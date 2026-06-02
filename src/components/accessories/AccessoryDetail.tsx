@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ShoppingCart, MessageCircle, ArrowLeft, CheckCircle, XCircle, Package } from "lucide-react";
@@ -11,8 +12,33 @@ interface AccessoryDetailProps {
 }
 
 export default function AccessoryDetail({ accessory }: AccessoryDetailProps) {
+  const [adding, setAdding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const waMessage = `Hello! I am interested in buying ${accessory.name} priced at ${formatPrice(accessory.price)}. Please provide more details.`;
   const waLink = generateWhatsAppLink(waMessage);
+
+  const addToCart = async () => {
+    setAdding(true);
+    setSuccessMessage("");
+    try {
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessoryId: accessory.id, quantity: 1 }),
+      });
+      if (res.ok) {
+        setSuccessMessage("Added to cart");
+      } else {
+        const data = await res.json();
+        setSuccessMessage(data.error || "Failed to add to cart");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      setSuccessMessage("Failed to add to cart");
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-16">
@@ -103,16 +129,19 @@ export default function AccessoryDetail({ accessory }: AccessoryDetailProps) {
                 <ShoppingCart className="w-5 h-5" />
                 Buy Now via WhatsApp
               </a>
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-2xl transition-all text-base"
+              <button
+                type="button"
+                onClick={addToCart}
+                disabled={adding}
+                className="flex items-center justify-center gap-2 py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-2xl transition-all text-base disabled:opacity-60"
               >
-                <MessageCircle className="w-5 h-5" />
-                Chat on WhatsApp
-              </a>
+                <ShoppingCart className="w-5 h-5" />
+                {adding ? "Adding..." : "Add to Cart"}
+              </button>
             </div>
+            {successMessage ? (
+              <p className="mt-3 text-sm font-medium text-green-600">{successMessage}</p>
+            ) : null}
           </div>
         </div>
       </div>

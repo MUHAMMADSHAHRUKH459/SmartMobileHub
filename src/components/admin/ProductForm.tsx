@@ -33,7 +33,7 @@ export default function ProductForm({
     oldPrice: editProduct?.oldPrice || "",
     category: editProduct?.category || "",
     inStock: editProduct?.inStock ?? true,
-    featured: editProduct?.featured ?? false,
+    featured: editProduct?.featured ?? true,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -109,6 +109,7 @@ export default function ProductForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          featured: editProduct ? form.featured : true,
           price: parseFloat(String(form.price)),
           oldPrice: form.oldPrice ? parseFloat(String(form.oldPrice)) : null,
           images,
@@ -208,7 +209,7 @@ export default function ProductForm({
           </div>
 
           {/* Price & Old Price */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1">
                 Price (PKR)
@@ -272,7 +273,7 @@ export default function ProductForm({
             <div className="grid grid-cols-4 gap-3 mb-3">
               {images.map((img, index) => (
                 <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-white/10">
-                  <Image src={img} alt="" className="w-full h-full object-cover" fill />
+                  <Image src={img} alt="" className="w-full h-full object-cover" fill sizes="200px" />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}

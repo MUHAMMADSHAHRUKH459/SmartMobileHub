@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { accessories as fallbackAccessories } from "@/data/accessories";
 
 export async function GET() {
   try {
@@ -10,10 +11,7 @@ export async function GET() {
     return NextResponse.json(accessories);
   } catch (error) {
     console.error("Error fetching accessories:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch accessories" },
-      { status: 500 }
-    );
+    return NextResponse.json(fallbackAccessories);
   }
 }
 

@@ -3,11 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate --config prisma/prisma.config.ts && next build",
+    "dev": "set NODE_OPTIONS=--max-old-space-size=4096 && next dev",
+    "build": "set NODE_OPTIONS=--max-old-space-size=4096 && prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
-    "setup-storage": "node scripts/setup-storage.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -16,6 +15,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",

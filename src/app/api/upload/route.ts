@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
+async function ensureBucketExists(bucketName: string) {
+  try {
+    // Check if bucket exists
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.name === bucketName);
+
+    if (!bucketExists) {
+      // Create bucket if it doesn't exist
+      const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
+        public: true,
+      });
+      if (error) {
+        console.error(`Failed to create bucket ${bucketName}:`, error);
+        throw error;
+      }
+      console.log(`Bucket ${bucketName} created successfully`);
+    }
+  } catch (error) {
+    console.error(`Error checking/creating bucket ${bucketName}:`, error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -10,6 +32,9 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+
+    // Ensure bucket exists
+    await ensureBucketExists(bucket);
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);

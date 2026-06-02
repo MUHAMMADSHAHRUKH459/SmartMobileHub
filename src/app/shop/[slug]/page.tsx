@@ -6,7 +6,7 @@ import ProductDetail from "@/components/shop/ProductDetail";
 import { Product } from "@/types";
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 export default async function ProductPage({ params }: PageProps) {

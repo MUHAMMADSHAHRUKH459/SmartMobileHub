@@ -1,6 +1,7 @@
 "use client";
 
-import { MessageCircle, ShoppingCart, CreditCard, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { MessageCircle, ShoppingCart, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import ImageSlider from "./ImageSlider";
 import { Product } from "@/types";
@@ -11,8 +12,33 @@ interface ProductDetailProps {
 }
 
 export default function ProductDetail({ product }: ProductDetailProps) {
+  const [adding, setAdding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const waMessage = `Hello! I am interested in buying ${product.name} priced at ${formatPrice(product.price)}. Please provide more details.`;
   const waLink = generateWhatsAppLink(waMessage);
+
+  const addToCart = async () => {
+    setAdding(true);
+    setSuccessMessage("");
+    try {
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+      if (res.ok) {
+        setSuccessMessage("Added to cart");
+      } else {
+        const data = await res.json();
+        setSuccessMessage(data.error || "Failed to add to cart");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      setSuccessMessage("Failed to add to cart");
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const specs = product.specs as Record<string, string> | null;
 
@@ -116,23 +142,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <ShoppingCart className="w-5 h-5" />
                 Buy Now via WhatsApp
               </a>
-              <Link
-                href={`/installment?product=${product.slug}&name=${encodeURIComponent(product.name)}&price=${product.price}`}
-                className="flex items-center justify-center gap-2 py-4 bg-slate-100 border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-200 transition-all text-base"
+              <button
+                type="button"
+                onClick={addToCart}
+                disabled={adding}
+                className="flex items-center justify-center gap-2 py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-2xl transition-all text-base disabled:opacity-60"
               >
-                <CreditCard className="w-5 h-5" />
-                Apply for Installment
-              </Link>
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-2xl transition-all text-base"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Chat on WhatsApp
-              </a>
+                <ShoppingCart className="w-5 h-5" />
+                {adding ? "Adding..." : "Add to Cart"}
+              </button>
             </div>
+            {successMessage ? (
+              <p className="mt-3 text-sm font-medium text-green-600">{successMessage}</p>
+            ) : null}
           </div>
         </div>
       </div>

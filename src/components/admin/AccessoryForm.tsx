@@ -175,7 +175,7 @@ export default function AccessoryForm({
           </div>
 
           {/* Price & Old Price */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1">
                 Price (PKR)
@@ -226,7 +226,7 @@ export default function AccessoryForm({
             </label>
             {image ? (
               <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-white/10">
-                <Image src={image} alt="" className="w-full h-full object-cover" fill />
+                <Image src={image} alt="" className="w-full h-full object-cover" fill sizes="200px" />
                 <button
                   type="button"
                   onClick={() => setImage("")}

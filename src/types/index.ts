@@ -27,3 +27,14 @@ export interface Accessory {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CartItem {
+  id: string;
+  productId?: string;
+  accessoryId?: string;
+  quantity: number;
+  product?: Product;
+  accessory?: Accessory;
+  createdAt: string;
+  updatedAt: string;
+}

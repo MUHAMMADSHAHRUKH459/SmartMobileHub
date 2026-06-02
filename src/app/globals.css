@@ -1,34 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --color-border: hsl(0 0% 85%);
-  --color-input: hsl(0 0% 95%);
-  --color-ring: hsl(0 0% 0%);
+  --color-border: hsl(210 100% 90%);
+  --color-input: hsl(210 100% 95%);
+  --color-ring: hsl(210 100% 50%);
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(0 0% 0%);
-  --color-primary: hsl(0 0% 0%);
+  --color-foreground: hsl(210 100% 10%);
+  --color-primary: hsl(210 100% 50%);
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(0 0% 95%);
-  --color-secondary-foreground: hsl(0 0% 10%);
-  --color-muted: hsl(0 0% 90%);
-  --color-muted-foreground: hsl(0 0% 40%);
-  --color-accent: hsl(0 0% 92%);
-  --color-accent-foreground: hsl(0 0% 0%);
+  --color-secondary: hsl(30 100% 55%);
+  --color-secondary-foreground: hsl(0 0% 100%);
+  --color-muted: hsl(210 100% 92%);
+  --color-muted-foreground: hsl(210 100% 40%);
+  --color-accent: hsl(30 100% 95%);
+  --color-accent-foreground: hsl(30 100% 50%);
   --color-destructive: hsl(0 84.2% 60.2%);
   --color-destructive-foreground: hsl(0 0% 100%);
-  --color-card: hsl(0 0% 98%);
-  --color-card-foreground: hsl(0 0% 0%);
-  --radius: 0.75rem;
+  --color-card: hsl(0 0% 99%);
+  --color-card-foreground: hsl(210 100% 10%);
+  --radius: 0.5rem;
 }
 
 @layer base {
   * {
-    border-color: hsl(0 0% 85%);
+    border-color: hsl(210 100% 90%);
     box-sizing: border-box;
   }
   body {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #f5f5f5;
+    color: #001a4d;
     font-family: 'Inter', sans-serif;
   }
   html {
@@ -38,19 +38,56 @@
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #000000 0%, #666666 100%);
+    background: linear-gradient(135deg, #0066cc 0%, #00b4ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .bg-glass {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 102, 204, 0.05);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 102, 204, 0.1);
+  }
+
+  .hover-glow {
+    transition: all 0.2s ease-in-out;
   }
 
   .hover-glow:hover {
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .badge-sale {
+    @apply bg-red-500 text-white text-xs font-bold px-2 py-1 rounded inline-block;
+  }
+
+  .badge-hot {
+    @apply bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded inline-block;
+  }
+
+  .card-shadow {
+    @apply shadow-sm border border-blue-100;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-100 text-gray-800 font-semibold rounded hover:bg-gray-200 transition-colors;
+  }
+
+  .star-rating {
+    @apply inline-flex items-center gap-1;
+  }
+
+  .price-tag {
+    @apply text-xl font-black text-blue-600;
+  }
+
+  .old-price {
+    @apply text-gray-400 line-through text-sm;
   }
 }

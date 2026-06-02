@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import AccessoryCard from "@/components/accessories/AccessoryCard";
 import { Accessory } from "@/types";
 import { Search, Package } from "lucide-react";
+import { parseJsonArray } from "@/lib/utils";
 
 const categories = ["All", "Earbuds", "Power Bank", "Charger", "Protector", "Cable", "Other"];
 
@@ -20,7 +21,7 @@ export default function AccessoriesPage() {
     async function load() {
       try {
         const res = await fetch("/api/accessories");
-        const data = await res.json();
+        const data = await parseJsonArray<Accessory>(res);
         if (!cancelled) setAccessories(data);
       } catch (error) {
         console.error("Error:", error);

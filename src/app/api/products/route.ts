@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { products as fallbackProducts } from "@/data/products";
 
 export async function GET() {
   try {
@@ -10,10 +11,7 @@ export async function GET() {
     return NextResponse.json(products);
   } catch (error) {
     console.error("Error fetching products:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch products" },
-      { status: 500 }
-    );
+    return NextResponse.json(fallbackProducts);
   }
 }
 
@@ -43,7 +41,7 @@ export async function POST(req: NextRequest) {
         oldPrice: oldPrice ? parseFloat(oldPrice) : null,
         category,
         inStock: inStock ?? true,
-        featured: featured ?? false,
+        featured: featured ?? true,
         images: images || [],
         specs: specs || {},
       },
