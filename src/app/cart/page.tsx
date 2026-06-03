@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CartItem } from "@/types";
+import { CartItem, Order } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 
@@ -53,7 +53,71 @@ export default function CartPage() {
     return sum + price * item.quantity;
   }, 0);
 
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [customer, setCustomer] = useState({ name: "", phone: "", address: "" });
+  const [processing, setProcessing] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [orderResult, setOrderResult] = useState<any | null>(null);
+
+  const openCheckout = () => setCheckoutOpen(true);
+  const closeCheckout = () => {
+    setCheckoutOpen(false);
+    setShowPaymentOptions(false);
+    setOrderResult(null);
+  };
+
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCustomer((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const proceedToPaymentOptions = () => {
+    if (!customer.name || !customer.phone || !customer.address) {
+      alert("Please fill all customer details");
+      return;
+    }
+    setShowPaymentOptions(true);
+  };
+
+  const createOrder = async (method: "COD" | "ONLINE") => {
+    setProcessing(true);
+    try {
+      const items = cartItems.map((it) => ({
+        productId: it.productId || null,
+        accessoryId: it.accessoryId || null,
+        name: it.product?.name || it.accessory?.name || "Item",
+        quantity: it.quantity,
+        unitPrice: it.product?.price ?? it.accessory?.price ?? 0,
+      }));
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: customer.name,
+          phone: customer.phone,
+          address: customer.address,
+          paymentMethod: method,
+          items,
+          deliveryCharge: 100,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Order failed");
+
+      setOrderResult({ method, order: data });
+      // Optionally: clear cart via API
+    } catch (error: any) {
+      console.error("Order error:", error);
+      alert(error.message || "Failed to create order");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
+    <>
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
@@ -128,7 +192,7 @@ export default function CartPage() {
                 <p className="text-slate-500 text-sm">Cart total</p>
                 <p className="text-3xl font-black text-slate-900">{formatPrice(totalPrice)}</p>
               </div>
-              <button className="w-full md:w-auto rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
+              <button onClick={openCheckout} className="w-full md:w-auto rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
                 Checkout
               </button>
             </div>
@@ -136,5 +200,108 @@ export default function CartPage() {
         )}
       </div>
     </div>
+    {/* Checkout modal */}
+    {checkoutOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-2xl max-w-xl w-full p-6">
+          {!showPaymentOptions && !orderResult && (
+            <div>
+              <h2 className="text-xl font-bold">Checkout - Customer Details</h2>
+              <p className="text-sm text-slate-600">Enter your information to proceed.</p>
+              <div className="mt-4 space-y-3">
+                <input name="name" value={customer.name} onChange={handleCustomerChange} placeholder="Full name" className="w-full p-2 border rounded" />
+                <input name="phone" value={customer.phone} onChange={handleCustomerChange} placeholder="Phone number" className="w-full p-2 border rounded" />
+                <textarea name="address" value={customer.address} onChange={handleCustomerChange} placeholder="Full delivery address" className="w-full p-2 border rounded" />
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button onClick={closeCheckout} className="px-4 py-2 rounded border">Cancel</button>
+                <button onClick={proceedToPaymentOptions} className="px-4 py-2 rounded bg-blue-600 text-white">Process to Checkout</button>
+              </div>
+            </div>
+          )}
+
+          {showPaymentOptions && !orderResult && (
+            <div>
+              <h2 className="text-xl font-bold">Choose Payment Method</h2>
+              <div className="mt-4 space-y-3">
+                <div className="p-3 border rounded">
+                  <h3 className="font-semibold">Cash On Delivery</h3>
+                  <p className="text-sm text-slate-600">Pay when your order arrives.</p>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => createOrder("COD")} disabled={processing} className="px-4 py-2 rounded bg-green-600 text-white">Cash On Delivery</button>
+                  </div>
+                </div>
+                <div className="p-3 border rounded">
+                  <h3 className="font-semibold">Pay Online</h3>
+                  <p className="text-sm text-slate-600">Complete payment and send screenshot to confirm.</p>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => createOrder("ONLINE")} disabled={processing} className="px-4 py-2 rounded bg-blue-600 text-white">Pay Online</button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowPaymentOptions(false)} className="px-4 py-2 rounded border">Back</button>
+                <button onClick={closeCheckout} className="px-4 py-2 rounded bg-gray-200">Close</button>
+              </div>
+            </div>
+          )}
+
+          {orderResult && (
+            <div>
+              {orderResult.method === "COD" ? (
+                <div>
+                  <h2 className="text-xl font-bold">Order Confirmed</h2>
+                  <p className="text-sm text-slate-600 mt-2">Thank you! Your order has been placed.</p>
+                  <div className="mt-4 p-4 border rounded bg-slate-50">
+                    <p><strong>Order ID:</strong> {orderResult.order.id}</p>
+                    <p><strong>Total:</strong> {formatPrice(orderResult.order.total)}</p>
+                    <p className="mt-2 font-semibold">Order Summary</p>
+                    <ul className="mt-2 list-disc pl-5 text-sm">
+                      {orderResult.order.items.map((it: any) => (
+                        <li key={it.id}>{it.name} x {it.quantity} — {formatPrice(it.unitPrice)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-4">
+                    <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded">Continue Shopping</Link>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="text-xl font-bold">Order Created Successfully!</h2>
+                  <p className="text-sm text-slate-600 mt-2">Order ID: {orderResult.order.id}</p>
+                  <div className="mt-4 p-4 border rounded bg-slate-50">
+                    <p className="font-semibold">Order Summary</p>
+                    <p>Total Items: {orderResult.order.items.length}</p>
+                    <p>Subtotal: {formatPrice(orderResult.order.subtotal)}</p>
+                    <p>Delivery Charges: {formatPrice(orderResult.order.deliveryCharge)}</p>
+                    <p className="font-bold">Total to Pay: {formatPrice(orderResult.order.total)}</p>
+
+                    <div className="mt-4">
+                      <h4 className="font-semibold">Complete Your Payment</h4>
+                      <ol className="list-decimal pl-5 mt-2 text-sm space-y-2">
+                        <li>
+                          Send payment to Nayapay<br />
+                          <strong>Account Number:</strong> 0321 8939868<br />
+                          <strong>Account Name:</strong> AHSAN<br />
+                          <strong>Amount:</strong> {formatPrice(orderResult.order.total)}
+                        </li>
+                        <li>Take a screenshot of payment — make sure transaction details are visible.</li>
+                        <li>Send screenshot on WhatsApp — click the button below to send.</li>
+                      </ol>
+                      <div className="mt-3">
+                        <a className="inline-block px-4 py-2 bg-green-600 text-white rounded" href={`https://wa.me/92?text=${encodeURIComponent("I have paid for order " + orderResult.order.id)}"`} target="_blank" rel="noreferrer">Send on WhatsApp</a>
+                      </div>
+                      <p className="text-sm text-red-600 mt-3">⚠️ PAYMENT IS COMPULSORY ⚠️ Send your payment screenshot on our WhatsApp to confirm your order.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }

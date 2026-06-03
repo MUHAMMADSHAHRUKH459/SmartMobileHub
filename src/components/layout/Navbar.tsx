@@ -6,10 +6,15 @@ import { usePathname } from "next/navigation";
 import { Menu, X, Smartphone, Search, ChevronDown } from "lucide-react";
 
 const categories = [
-  { label: "Smartphones", value: "smartphones" },
-  { label: "Tablets", value: "tablets" },
-  { label: "Accessories", value: "accessories" },
-  { label: "Keypad Phones", value: "keypad" },
+  { label: "Smartphones", value: "Smartphones" },
+  { label: "Tablets", value: "Tablets" },
+  { label: "Accessories", value: "Accessories" },
+  { label: "Keypad Phones", value: "Keypad" },
+];
+
+const smartphoneConditions = [
+  { label: "New Smartphones", value: "Smartphones", condition: "new" },
+  { label: "Used Smartphones", value: "Smartphones", condition: "used" },
 ];
 
 export default function Navbar() {
@@ -79,6 +84,7 @@ export default function Navbar() {
               <ChevronDown className="w-4 h-4" />
             </button>
             <div className="absolute hidden group-hover:block left-0 top-full bg-white border border-blue-100 rounded-lg shadow-lg py-2 min-w-48 z-10">
+              <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-400">Categories</div>
               {categories.map((cat) => (
                 <Link
                   key={cat.value}
@@ -86,6 +92,17 @@ export default function Navbar() {
                   className="block px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all"
                 >
                   {cat.label}
+                </Link>
+              ))}
+              <div className="border-t border-blue-100 my-2" />
+              <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-400">Smartphones</div>
+              {smartphoneConditions.map((item) => (
+                <Link
+                  key={item.label}
+                  href={`/shop?category=${item.value}&condition=${item.condition}`}
+                  className="block px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                >
+                  {item.label}
                 </Link>
               ))}
             </div>
@@ -146,6 +163,18 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   {cat.label}
+                </Link>
+              ))}
+              <div className="border-t border-blue-100 my-2" />
+              <p className="px-4 py-2 text-xs font-bold text-gray-600 uppercase">Smartphones</p>
+              {smartphoneConditions.map((item) => (
+                <Link
+                  key={item.label}
+                  href={`/shop?category=${item.value}&condition=${item.condition}`}
+                  className="block px-4 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
                 </Link>
               ))}
             </div>

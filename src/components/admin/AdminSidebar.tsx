@@ -19,6 +19,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Smartphone },
   { label: "Accessories", href: "/admin/accessories", icon: Package },
+  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Cart", href: "/admin/cart", icon: ShoppingCart },
 ];
 

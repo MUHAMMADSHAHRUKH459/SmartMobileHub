@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       featured,
       images,
       specs,
+      condition,
     } = body;
 
     const slug = slugify(name) + "-" + Date.now();
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
         description,
         price: parseFloat(price),
         oldPrice: oldPrice ? parseFloat(oldPrice) : null,
+        condition: condition || null,
         category,
         inStock: inStock ?? true,
         featured: featured ?? true,

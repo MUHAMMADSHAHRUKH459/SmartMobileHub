@@ -20,6 +20,7 @@ model Product {
   description String
   price       Float
   oldPrice    Float?
+  condition   String?
   category    String
   inStock     Boolean    @default(true)
   featured    Boolean    @default(false)
@@ -28,6 +29,33 @@ model Product {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   cartItems   CartItem[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  customerName   String
+  phone          String      @map("customerPhone")
+  address        String      @map("customerAddress")
+  paymentMethod  String      @map("paymentStatus")
+  status         String      @default("pending") @map("orderStatus")
+  subtotal       Float
+  deliveryCharge Float       @default(100) @map("deliveryCharges")
+  total          Float
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt        // ← Fix: ? hata diya
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  order       Order   @relation(fields: [orderId], references: [id])
+  orderId     String
+  productId   String?
+  accessoryId String?
+  name        String
+  quantity    Int
+  unitPrice   Float   @map("price")
 }
 
 model Accessory {
@@ -47,8 +75,8 @@ model Accessory {
 
 model CartItem {
   id          String     @id @default(cuid())
-  productId   String?    
-  accessoryId String?    
+  productId   String?
+  accessoryId String?
   product     Product?   @relation(fields: [productId], references: [id])
   accessory   Accessory? @relation(fields: [accessoryId], references: [id])
   quantity    Int        @default(1)

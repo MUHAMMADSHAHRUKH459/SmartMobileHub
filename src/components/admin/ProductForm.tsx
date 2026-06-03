@@ -32,6 +32,7 @@ export default function ProductForm({
     price: editProduct?.price || 0,
     oldPrice: editProduct?.oldPrice || "",
     category: editProduct?.category || "",
+    condition: (editProduct as any)?.condition || "",
     inStock: editProduct?.inStock ?? true,
     featured: editProduct?.featured ?? true,
   });
@@ -114,6 +115,7 @@ export default function ProductForm({
           oldPrice: form.oldPrice ? parseFloat(String(form.oldPrice)) : null,
           images,
           specs,
+          condition: (form as any).condition || null,
         }),
       });
 
@@ -207,6 +209,25 @@ export default function ProductForm({
               ))}
             </select>
           </div>
+
+          {form.category === "Smartphones" && (
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1">
+                Condition
+              </label>
+              <select
+                name="condition"
+                value={(form as any).condition}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-white/30 transition-all"
+              >
+                <option value="">Select condition...</option>
+                <option value="new">New</option>
+                <option value="used">Used</option>
+              </select>
+            </div>
+          )}
 
           {/* Price & Old Price */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

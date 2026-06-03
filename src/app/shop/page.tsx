@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/shop/ProductCard";
@@ -19,10 +20,12 @@ const sortOptions = [
 ];
 
 export default function ShopPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [condition, setCondition] = useState("");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [sortBy, setSortBy] = useState("relevance");
@@ -45,16 +48,28 @@ export default function ShopPage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const categoryParam = searchParams.get("category") || "All";
+    const conditionParam = searchParams.get("condition") || "";
+    const normalizedCategory =
+      categories.find((cat) => cat.toLowerCase() === categoryParam.toLowerCase()) || "All";
+
+    setActiveCategory(normalizedCategory);
+    setCondition(conditionParam);
+  }, [searchParams]);
+
   const filtered = products.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.description.toLowerCase().includes(search.toLowerCase());
     const matchCategory =
       activeCategory === "All" || p.category === activeCategory;
+    const matchCondition =
+      !condition || p.condition === condition;
     const matchBrand =
       selectedBrands.length === 0 || selectedBrands.some(brand => p.name.includes(brand));
     const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
-    return matchSearch && matchCategory && matchBrand && matchPrice;
+    return matchSearch && matchCategory && matchCondition && matchBrand && matchPrice;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -85,7 +100,9 @@ export default function ShopPage() {
             Shop Phones
           </h1>
           <p className="text-gray-600">
-            Browse {filtered.length} products {activeCategory !== "All" && `in ${activeCategory}`}
+            Browse {filtered.length} products
+            {activeCategory !== "All" && ` in ${activeCategory}`}
+            {condition && ` (${condition})`}
           </p>
         </div>
       </section>

@@ -5,6 +5,7 @@ export interface Product {
   description: string;
   price: number;
   oldPrice?: number;
+  condition?: string;
   category: string;
   inStock: boolean;
   featured: boolean;
@@ -12,6 +13,30 @@ export interface Product {
   specs?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId?: string | null;
+  accessoryId?: string | null;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface Order {
+  id: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  paymentMethod: string;
+  status: string;
+  subtotal: number;
+  deliveryCharge: number;
+  total: number;
+  createdAt: string;
+  items: OrderItem[];
 }
 
 export interface Accessory {
