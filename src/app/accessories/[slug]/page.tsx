@@ -6,7 +6,7 @@ import AccessoryDetail from "@/components/accessories/AccessoryDetail";
 import { Accessory } from "@/types";
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 export default async function AccessoryPage({ params }: PageProps) {

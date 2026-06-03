@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminProvider, useAdmin } from "@/components/admin/AdminContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { Smartphone, Package, TrendingUp, Eye } from "lucide-react";
 import Link from "next/link";
 import { Product, Accessory } from "@/types";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, parseJsonArray } from "@/lib/utils";
 
-export default function AdminDashboard() {
+function DashboardContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { closeSidebar } = useAdmin();
 
   useEffect(() => {
     let cancelled = false;
@@ -20,7 +22,10 @@ export default function AdminDashboard() {
           fetch("/api/products"),
           fetch("/api/accessories"),
         ]);
-        const [pData, aData] = await Promise.all([pRes.json(), aRes.json()]);
+        const [pData, aData] = await Promise.all([
+          parseJsonArray<Product>(pRes),
+          parseJsonArray<Accessory>(aRes),
+        ]);
         if (!cancelled) {
           setProducts(pData);
           setAccessories(aData);
@@ -70,7 +75,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-black text-white">
       <AdminSidebar />
-      <div className="ml-64 p-8">
+      <div className="md:ml-64 pt-16 md:pt-0 p-4 md:p-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-black text-white">Dashboard</h1>
@@ -87,6 +92,7 @@ export default function AdminDashboard() {
               <Link
                 key={stat.label}
                 href={stat.href}
+                onClick={closeSidebar}
                 className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all"
               >
                 <div className="flex items-center justify-between mb-3">
@@ -110,6 +116,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col gap-3">
               <Link
                 href="/admin/products"
+                onClick={closeSidebar}
                 className="flex items-center gap-3 px-4 py-3 bg-white text-black font-semibold rounded-xl hover:bg-white/90 transition-all text-sm"
               >
                 <Smartphone className="w-4 h-4" />
@@ -117,6 +124,7 @@ export default function AdminDashboard() {
               </Link>
               <Link
                 href="/admin/accessories"
+                onClick={closeSidebar}
                 className="flex items-center gap-3 px-4 py-3 bg-white/10 border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-sm"
               >
                 <Package className="w-4 h-4" />
@@ -151,13 +159,13 @@ export default function AdminDashboard() {
                     key={product.id}
                     className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-white text-sm font-medium line-clamp-1">
                         {product.name}
                       </p>
                       <p className="text-white/30 text-xs">{product.category}</p>
                     </div>
-                    <p className="text-white font-bold text-sm">
+                    <p className="text-white font-bold text-sm ml-2 flex-shrink-0">
                       {formatPrice(product.price)}
                     </p>
                   </div>
@@ -168,5 +176,13 @@ export default function AdminDashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <AdminProvider>
+      <DashboardContent />
+    </AdminProvider>
   );
 }

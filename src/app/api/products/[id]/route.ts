@@ -38,6 +38,7 @@ export async function PATCH(
       featured,
       images,
       specs,
+      condition,
     } = body;
 
     const product = await prisma.product.update({
@@ -47,6 +48,7 @@ export async function PATCH(
         ...(description && { description }),
         ...(price !== undefined && { price: parseFloat(price) }),
         ...(oldPrice !== undefined && { oldPrice: oldPrice ? parseFloat(oldPrice) : null }),
+        ...(condition !== undefined && { condition: condition || null }),
         ...(category && { category }),
         ...(inStock !== undefined && { inStock }),
         ...(featured !== undefined && { featured }),

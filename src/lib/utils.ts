@@ -21,6 +21,19 @@ export function formatPrice(price: number): string {
   }).format(price);
 }
 
+export async function parseJsonArray<T = unknown>(response: Response): Promise<T[]> {
+  try {
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
 export const WHATSAPP_NUMBER = "923218939868";
 
 export function generateWhatsAppLink(message: string): string {
