@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/shop/ProductCard";
 import { Product } from "@/types";
-import { Search, Smartphone, ChevronDown, X } from "lucide-react";
+import { Search, Smartphone, X } from "lucide-react";
 import { parseJsonArray } from "@/lib/utils";
 
 const categories = ["All", "Smartphones", "Tablets", "Keypad", "Accessories"];
@@ -19,13 +19,19 @@ const sortOptions = [
   { label: "Top Rated", value: "rating" },
 ];
 
-export default function ShopPage() {
+function ShopContent() {
   const searchParams = useSearchParams();
+
+  // ✅ useEffect hataya — directly searchParams se read kar rahe hain
+  const categoryParam = searchParams.get("category") || "All";
+  const conditionParam = searchParams.get("condition") || "";
+  const activeCategory =
+    categories.find((cat) => cat.toLowerCase() === categoryParam.toLowerCase()) || "All";
+  const condition = conditionParam;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [condition, setCondition] = useState("");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [sortBy, setSortBy] = useState("relevance");
@@ -47,16 +53,6 @@ export default function ShopPage() {
     load();
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    const categoryParam = searchParams.get("category") || "All";
-    const conditionParam = searchParams.get("condition") || "";
-    const normalizedCategory =
-      categories.find((cat) => cat.toLowerCase() === categoryParam.toLowerCase()) || "All";
-
-    setActiveCategory(normalizedCategory);
-    setCondition(conditionParam);
-  }, [searchParams]);
 
   const filtered = products.filter((p) => {
     const matchSearch =
@@ -126,7 +122,7 @@ export default function ShopPage() {
                       <input
                         type="radio"
                         checked={activeCategory === cat}
-                        onChange={() => setActiveCategory(cat)}
+                        onChange={() => {}}
                         className="w-4 h-4 text-blue-600 cursor-pointer"
                       />
                       <span className="text-gray-700 group-hover:text-blue-600 text-sm">
@@ -197,7 +193,6 @@ export default function ShopPage() {
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Top Bar with Search and Sort */}
             <div className="mb-6 space-y-4">
               {/* Search */}
               <div className="relative">
@@ -222,10 +217,7 @@ export default function ShopPage() {
                   </button>
                   {(selectedBrands.length > 0 || activeCategory !== "All") && (
                     <button
-                      onClick={() => {
-                        setSelectedBrands([]);
-                        setActiveCategory("All");
-                      }}
+                      onClick={() => setSelectedBrands([])}
                       className="px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 flex items-center gap-1"
                     >
                       Clear Filters
@@ -262,12 +254,8 @@ export default function ShopPage() {
             ) : sorted.length === 0 ? (
               <div className="text-center py-24 bg-white rounded-lg border border-blue-100">
                 <Smartphone className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 text-lg font-semibold mb-2">
-                  No products found
-                </p>
-                <p className="text-gray-500">
-                  Try adjusting your filters or search term
-                </p>
+                <p className="text-gray-600 text-lg font-semibold mb-2">No products found</p>
+                <p className="text-gray-500">Try adjusting your filters or search term</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -282,5 +270,13 @@ export default function ShopPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ShopContent />
+    </Suspense>
   );
 }

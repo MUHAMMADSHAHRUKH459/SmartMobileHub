@@ -1,307 +1,282 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { CartItem, Order } from "@/types";
-import { formatPrice } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import ProductCard from "@/components/shop/ProductCard";
+import { Product } from "@/types";
+import { Search, Smartphone, X } from "lucide-react";
+import { parseJsonArray } from "@/lib/utils";
 
-export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+const categories = ["All", "Smartphones", "Tablets", "Keypad", "Accessories"];
+const brands = ["Apple", "Samsung", "Xiaomi", "Oppo", "Vivo", "Realme", "Oneplus", "Huawei"];
+const sortOptions = [
+  { label: "Relevance", value: "relevance" },
+  { label: "Price: Low to High", value: "price-asc" },
+  { label: "Price: High to Low", value: "price-desc" },
+  { label: "Newest", value: "newest" },
+  { label: "Top Rated", value: "rating" },
+];
+
+function ShopContent() {
+  const searchParams = useSearchParams();
+
+  // ✅ useEffect hataya — directly searchParams se read kar rahe hain
+  const categoryParam = searchParams.get("category") || "All";
+  const conditionParam = searchParams.get("condition") || "";
+  const activeCategory =
+    categories.find((cat) => cat.toLowerCase() === categoryParam.toLowerCase()) || "All";
+  const condition = conditionParam;
+
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState([0, 500000]);
+  const [sortBy, setSortBy] = useState("relevance");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetchCart();
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/products");
+        const data = await parseJsonArray<Product>(res);
+        if (!cancelled) setProducts(data);
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
-  const fetchCart = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/cart");
-      const data = await res.json();
+  const filtered = products.filter((p) => {
+    const matchSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description.toLowerCase().includes(search.toLowerCase());
+    const matchCategory =
+      activeCategory === "All" || p.category === activeCategory;
+    const matchCondition =
+      !condition || p.condition === condition;
+    const matchBrand =
+      selectedBrands.length === 0 || selectedBrands.some(brand => p.name.includes(brand));
+    const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
+    return matchSearch && matchCategory && matchCondition && matchBrand && matchPrice;
+  });
 
-      if (!res.ok || !Array.isArray(data)) {
-        console.error("Error fetching cart: unexpected response", data);
-        setCartItems([]);
-        return;
-      }
-
-      setCartItems(data);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      setCartItems([]);
-    } finally {
-      setLoading(false);
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortBy) {
+      case "price-asc":
+        return a.price - b.price;
+      case "price-desc":
+        return b.price - a.price;
+      default:
+        return 0;
     }
-  };
+  });
 
-  const handleRemove = async (id: string) => {
-    setRemovingId(id);
-    try {
-      await fetch(`/api/cart/${id}`, { method: "DELETE" });
-      await fetchCart();
-    } catch (error) {
-      console.error("Error removing cart item:", error);
-    } finally {
-      setRemovingId(null);
-    }
-  };
-
-  const totalPrice = cartItems.reduce((sum, item) => {
-    const price = item.product?.price ?? item.accessory?.price ?? 0;
-    return sum + price * item.quantity;
-  }, 0);
-
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", phone: "", address: "" });
-  const [processing, setProcessing] = useState(false);
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-  const [orderResult, setOrderResult] = useState<any | null>(null);
-
-  const openCheckout = () => setCheckoutOpen(true);
-  const closeCheckout = () => {
-    setCheckoutOpen(false);
-    setShowPaymentOptions(false);
-    setOrderResult(null);
-  };
-
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCustomer((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const proceedToPaymentOptions = () => {
-    if (!customer.name || !customer.phone || !customer.address) {
-      alert("Please fill all customer details");
-      return;
-    }
-    setShowPaymentOptions(true);
-  };
-
-  const createOrder = async (method: "COD" | "ONLINE") => {
-    setProcessing(true);
-    try {
-      const items = cartItems.map((it) => ({
-        productId: it.productId || null,
-        accessoryId: it.accessoryId || null,
-        name: it.product?.name || it.accessory?.name || "Item",
-        quantity: it.quantity,
-        unitPrice: it.product?.price ?? it.accessory?.price ?? 0,
-      }));
-
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName: customer.name,
-          phone: customer.phone,
-          address: customer.address,
-          paymentMethod: method,
-          items,
-          deliveryCharge: 100,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Order failed");
-
-      setOrderResult({ method, order: data });
-      // Optionally: clear cart via API
-    } catch (error: any) {
-      console.error("Order error:", error);
-      alert(error.message || "Failed to create order");
-    } finally {
-      setProcessing(false);
-    }
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands(prev =>
+      prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
+    );
   };
 
   return (
-    <>
-    <div className="min-h-screen bg-white pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900">Your Cart</h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Review cart items and manage checkout from here.
-            </p>
-          </div>
-          <Link
-            href="/shop"
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Continue shopping
-          </Link>
+    <main className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      {/* Page Header */}
+      <section className="pt-32 pb-8 px-4 lg:px-8 bg-white border-b border-blue-100">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            Shop Phones
+          </h1>
+          <p className="text-gray-600">
+            Browse {filtered.length} products
+            {activeCategory !== "All" && ` in ${activeCategory}`}
+            {condition && ` (${condition})`}
+          </p>
         </div>
+      </section>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="h-28 rounded-3xl bg-slate-100 animate-pulse" />
-            ))}
-          </div>
-        ) : cartItems.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-12 text-center">
-            <p className="text-slate-700 text-lg font-semibold">Your cart is empty</p>
-            <p className="text-slate-500 mt-2">Add a product to your cart to see it here.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {cartItems.map((item) => {
-              const productName = item.product?.name ?? item.accessory?.name ?? "Item";
-              const image = item.product?.images?.[0] ?? item.accessory?.image ?? "";
-              const price = item.product?.price ?? item.accessory?.price ?? 0;
-
-              return (
-                <div key={item.id} className="grid gap-4 md:grid-cols-[auto_1fr_auto] items-center rounded-3xl border border-slate-200 p-5">
-                  <div className="relative h-28 w-28 rounded-3xl overflow-hidden bg-slate-100">
-                    {image ? (
-                      <img src={image} alt={productName} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-slate-400">
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold text-slate-900">{productName}</p>
-                    <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
-                    <p className="text-sm text-slate-500">
-                      Unit Price: {formatPrice(price)}
-                    </p>
-                    <p className="text-sm text-slate-900 font-semibold mt-2">
-                      Total: {formatPrice(price * item.quantity)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={removingId === item.id}
-                    onClick={() => handleRemove(item.id)}
-                    className="inline-flex items-center gap-2 rounded-3xl bg-red-500 px-4 py-3 text-sm font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Remove
-                  </button>
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+        <div className="flex gap-6">
+          {/* Sidebar Filters - Desktop */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg border border-blue-100 p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
+              {/* Category Filter */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+                  Category
+                </h3>
+                <div className="space-y-2">
+                  {categories.map((cat) => (
+                    <label
+                      key={cat}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="radio"
+                        checked={activeCategory === cat}
+                        onChange={() => {}}
+                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                      />
+                      <span className="text-gray-700 group-hover:text-blue-600 text-sm">
+                        {cat}
+                      </span>
+                    </label>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="border-t border-gray-200 my-6" />
+
+              {/* Brand Filter */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+                  Brands
+                </h3>
+                <div className="space-y-2">
+                  {brands.map((brand) => (
+                    <label
+                      key={brand}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBrands.includes(brand)}
+                        onChange={() => toggleBrand(brand)}
+                        className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                      />
+                      <span className="text-gray-700 group-hover:text-blue-600 text-sm">
+                        {brand}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 my-6" />
+
+              {/* Price Range */}
               <div>
-                <p className="text-slate-500 text-sm">Cart total</p>
-                <p className="text-3xl font-black text-slate-900">{formatPrice(totalPrice)}</p>
+                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
+                  Price Range
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="500000"
+                    value={priceRange[0]}
+                    onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                    placeholder="Min"
+                    className="flex-1 px-3 py-2 border border-blue-200 rounded text-sm"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="500000"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                    placeholder="Max"
+                    className="flex-1 px-3 py-2 border border-blue-200 rounded text-sm"
+                  />
+                </div>
               </div>
-              <button onClick={openCheckout} className="w-full md:w-auto rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
-                Checkout
-              </button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
-    {/* Checkout modal */}
-    {checkoutOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-        <div className="bg-white rounded-2xl max-w-xl w-full p-6">
-          {!showPaymentOptions && !orderResult && (
-            <div>
-              <h2 className="text-xl font-bold">Checkout - Customer Details</h2>
-              <p className="text-sm text-slate-600">Enter your information to proceed.</p>
-              <div className="mt-4 space-y-3">
-                <input name="name" value={customer.name} onChange={handleCustomerChange} placeholder="Full name" className="w-full p-2 border rounded" />
-                <input name="phone" value={customer.phone} onChange={handleCustomerChange} placeholder="Phone number" className="w-full p-2 border rounded" />
-                <textarea name="address" value={customer.address} onChange={handleCustomerChange} placeholder="Full delivery address" className="w-full p-2 border rounded" />
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <div className="mb-6 space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search phones..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-blue-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400"
+                />
               </div>
-              <div className="flex gap-3 mt-4">
-                <button onClick={closeCheckout} className="px-4 py-2 rounded border">Cancel</button>
-                <button onClick={proceedToPaymentOptions} className="px-4 py-2 rounded bg-blue-600 text-white">Process to Checkout</button>
+
+              {/* Filters and Sort Row */}
+              <div className="flex flex-wrap items-center gap-3 justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    Filters
+                  </button>
+                  {(selectedBrands.length > 0 || activeCategory !== "All") && (
+                    <button
+                      onClick={() => setSelectedBrands([])}
+                      className="px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 flex items-center gap-1"
+                    >
+                      Clear Filters
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Sort */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-blue-400"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          )}
 
-          {showPaymentOptions && !orderResult && (
-            <div>
-              <h2 className="text-xl font-bold">Choose Payment Method</h2>
-              <div className="mt-4 space-y-3">
-                <div className="p-3 border rounded">
-                  <h3 className="font-semibold">Cash On Delivery</h3>
-                  <p className="text-sm text-slate-600">Pay when your order arrives.</p>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => createOrder("COD")} disabled={processing} className="px-4 py-2 rounded bg-green-600 text-white">Cash On Delivery</button>
-                  </div>
-                </div>
-                <div className="p-3 border rounded">
-                  <h3 className="font-semibold">Pay Online</h3>
-                  <p className="text-sm text-slate-600">Complete payment and send screenshot to confirm.</p>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => createOrder("ONLINE")} disabled={processing} className="px-4 py-2 rounded bg-blue-600 text-white">Pay Online</button>
-                  </div>
-                </div>
+            {/* Products Grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="bg-gray-200 rounded-lg h-96 animate-pulse" />
+                ))}
               </div>
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => setShowPaymentOptions(false)} className="px-4 py-2 rounded border">Back</button>
-                <button onClick={closeCheckout} className="px-4 py-2 rounded bg-gray-200">Close</button>
+            ) : sorted.length === 0 ? (
+              <div className="text-center py-24 bg-white rounded-lg border border-blue-100">
+                <Smartphone className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 text-lg font-semibold mb-2">No products found</p>
+                <p className="text-gray-500">Try adjusting your filters or search term</p>
               </div>
-            </div>
-          )}
-
-          {orderResult && (
-            <div>
-              {orderResult.method === "COD" ? (
-                <div>
-                  <h2 className="text-xl font-bold">Order Confirmed</h2>
-                  <p className="text-sm text-slate-600 mt-2">Thank you! Your order has been placed.</p>
-                  <div className="mt-4 p-4 border rounded bg-slate-50">
-                    <p><strong>Order ID:</strong> {orderResult.order.id}</p>
-                    <p><strong>Total:</strong> {formatPrice(orderResult.order.total)}</p>
-                    <p className="mt-2 font-semibold">Order Summary</p>
-                    <ul className="mt-2 list-disc pl-5 text-sm">
-                      {orderResult.order.items.map((it: any) => (
-                        <li key={it.id}>{it.name} x {it.quantity} — {formatPrice(it.unitPrice)}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="mt-4">
-                    <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded">Continue Shopping</Link>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <h2 className="text-xl font-bold">Order Created Successfully!</h2>
-                  <p className="text-sm text-slate-600 mt-2">Order ID: {orderResult.order.id}</p>
-                  <div className="mt-4 p-4 border rounded bg-slate-50">
-                    <p className="font-semibold">Order Summary</p>
-                    <p>Total Items: {orderResult.order.items.length}</p>
-                    <p>Subtotal: {formatPrice(orderResult.order.subtotal)}</p>
-                    <p>Delivery Charges: {formatPrice(orderResult.order.deliveryCharge)}</p>
-                    <p className="font-bold">Total to Pay: {formatPrice(orderResult.order.total)}</p>
-
-                    <div className="mt-4">
-                      <h4 className="font-semibold">Complete Your Payment</h4>
-                      <ol className="list-decimal pl-5 mt-2 text-sm space-y-2">
-                        <li>
-                          Send payment to Nayapay<br />
-                          <strong>Account Number:</strong> 0321 8939868<br />
-                          <strong>Account Name:</strong> AHSAN<br />
-                          <strong>Amount:</strong> {formatPrice(orderResult.order.total)}
-                        </li>
-                        <li>Take a screenshot of payment — make sure transaction details are visible.</li>
-                        <li>Send screenshot on WhatsApp — click the button below to send.</li>
-                      </ol>
-                      <div className="mt-3">
-                        <a className="inline-block px-4 py-2 bg-green-600 text-white rounded" href={`https://wa.me/92?text=${encodeURIComponent("I have paid for order " + orderResult.order.id)}"`} target="_blank" rel="noreferrer">Send on WhatsApp</a>
-                      </div>
-                      <p className="text-sm text-red-600 mt-3">⚠️ PAYMENT IS COMPULSORY ⚠️ Send your payment screenshot on our WhatsApp to confirm your order.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sorted.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    )}
-    </>
+
+      <Footer />
+    </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ShopContent />
+    </Suspense>
   );
 }
