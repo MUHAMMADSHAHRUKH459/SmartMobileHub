@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CartItem } from "@/types";
 import { formatPrice } from "@/lib/utils";
-import { RefreshCw, Trash2, ShoppingCart } from "lucide-react";
+import { RefreshCw, Trash2 } from "lucide-react";
 
 export default function AdminCartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

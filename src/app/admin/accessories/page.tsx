@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminProvider, useAdmin } from "@/components/admin/AdminContext";
+import { AdminProvider } from "@/components/admin/AdminContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AccessoryForm from "@/components/admin/AccessoryForm";
 import { Accessory } from "@/types";
@@ -16,7 +16,6 @@ function AccessoriesContent() {
   const [editAccessory, setEditAccessory] = useState<Accessory | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const { closeSidebar } = useAdmin();
 
   useEffect(() => {
     let cancelled = false;

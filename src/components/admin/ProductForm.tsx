@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { X, Upload, Plus, Trash2, Smartphone } from "lucide-react";
 import { Product } from "@/types";
+
+interface ProductFormState {
+  name: string;
+  description: string;
+  price: number;
+  oldPrice: number | "";
+  category: string;
+  condition: string | null;
+  inStock: boolean;
+  featured: boolean;
+}
 
 interface ProductFormProps {
   onClose: () => void;
@@ -26,19 +37,28 @@ export default function ProductForm({
       ? Object.entries(editProduct.specs).map(([key, value]) => ({ key, value: value as string }))
       : [{ key: "", value: "" }]
   );
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProductFormState>({
     name: editProduct?.name || "",
     description: editProduct?.description || "",
     price: editProduct?.price || 0,
-    oldPrice: editProduct?.oldPrice || "",
+    oldPrice: editProduct?.oldPrice ?? "",
     category: editProduct?.category || "",
-    condition: (editProduct as any)?.condition || "",
+    condition: editProduct?.condition ?? null,
     inStock: editProduct?.inStock ?? true,
     featured: editProduct?.featured ?? true,
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm((prev) => ({ ...prev, [name]: checked }));
+    } else if (type === "number") {
+      const parsedValue = value === "" ? (name === "oldPrice" ? "" : 0) : Number(value);
+      setForm((prev) => ({ ...prev, [name]: parsedValue }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
       setForm((prev) => ({ ...prev, [name]: checked }));
@@ -93,7 +113,7 @@ export default function ProductForm({
     setSpecsInput((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -112,10 +132,10 @@ export default function ProductForm({
           ...form,
           featured: editProduct ? form.featured : true,
           price: parseFloat(String(form.price)),
-          oldPrice: form.oldPrice ? parseFloat(String(form.oldPrice)) : null,
+          oldPrice: form.oldPrice !== "" ? Number(form.oldPrice) : null,
           images,
           specs,
-          condition: (form as any).condition || null,
+          condition: form.condition || null,
         }),
       });
 
@@ -217,7 +237,7 @@ export default function ProductForm({
               </label>
               <select
                 name="condition"
-                value={(form as any).condition}
+                value={form.condition ?? ""}
                 onChange={handleInputChange}
                 required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-white/30 transition-all"

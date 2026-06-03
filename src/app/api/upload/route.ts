@@ -9,7 +9,7 @@ async function ensureBucketExists(bucketName: string) {
 
     if (!bucketExists) {
       // Create bucket if it doesn't exist
-      const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
+      const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
         public: true,
       });
       if (error) {
